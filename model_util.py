@@ -3,12 +3,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 import numpy as np
 
-from tensorflow.python.keras.applications.mobilenet import MobileNet, preprocess_input
-from tensorflow.python.keras.preprocessing import image as process_image
-from tensorflow.python.keras.utils import Sequence
-from tensorflow.python.keras.layers import GlobalAveragePooling2D
-from tensorflow.python.keras import Model
-
+from keras.applications.mobilenet import MobileNet, preprocess_input
+from keras.preprocessing import image as process_image
+from keras.utils import Sequence
+from keras.layers import GlobalAveragePooling2D
+from keras import Model
 
 class DeepModel():
     '''MobileNet deep model.'''
@@ -46,7 +45,6 @@ class DeepModel():
         '''
         img = process_image.load_img(path, target_size=(224, 224))
         x = process_image.img_to_array(img)
-        # x = np.expand_dims(x, axis=0)
         x = preprocess_input(x)
         return x
 
@@ -54,7 +52,7 @@ class DeepModel():
     def cosine_distance(input1, input2):
         '''Calculating the distance of two inputs.
 
-        The return values lies in [-1, 1]. `-1` denotes two features are the most unlike,
+        The return values lie in [-1, 1]. `-1` denotes two features are the most unlike,
         `1` denotes they are the most similar.
 
         Args:
@@ -63,26 +61,36 @@ class DeepModel():
         Returns:
             Element-wise cosine distances of two inputs.
         '''
-        # return np.dot(input1, input2) / (np.linalg.norm(input1) * np.linalg.norm(input2))
         return np.dot(input1, input2.T) / \
-                np.dot(np.linalg.norm(input1, axis=1, keepdims=True), \
-                        np.linalg.norm(input2.T, axis=0, keepdims=True))
+               np.dot(np.linalg.norm(input1, axis=1, keepdims=True), \
+                      np.linalg.norm(input2.T, axis=0, keepdims=True))
 
     def extract_feature(self, generator):
-        '''Extract deep feature using MobileNet model.
+        '''Extract deep feature using the MobileNet model.
 
         Args:
-            generator: a predict generator inherit from `keras.utils.Sequence`.
+            generator: a prediction generator inherited from `keras.utils.Sequence`.
 
         Returns:
-            The output features of all inputs.
+            Flattened feature vectors of all inputs in the batch.
         '''
-        features = self._model.predict_generator(generator)
-        return features
+        # Get the raw features from the model's prediction
+        features = self._model.predict(generator)
+
+        # Debugging: Print the shape of the extracted features before flattening
+        print("Raw feature shape before flattening:", features.shape)
+
+        # Flatten each feature vector for each image in the batch
+        flattened_features = features.reshape(features.shape[0], -1)
+
+        # Debugging: Print the shape of the flattened features
+        print("Flattened feature shape:", flattened_features.shape)
+
+        return flattened_features
 
 
 class DataSequence(Sequence):
-    '''Predict generator inherit from `keras.utils.Sequence`.'''
+    '''Predict generator inherited from `keras.utils.Sequence`.'''
     def __init__(self, paras, generation, batch_size=32):
         self.list_of_label_fields = []
         self.list_of_paras = paras
